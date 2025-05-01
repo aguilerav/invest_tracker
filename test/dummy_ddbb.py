@@ -3,7 +3,7 @@ This codes creates a dummy database in csv
 """
 
 import pandas as pd
-from ahorro.utils.paths import DATA_DIR, PROJECT_ROOT
+from ahorro.utils.paths import DATA_DIR
 
 # Users for login
 users = pd.DataFrame(
@@ -28,9 +28,29 @@ clients.to_csv(DATA_DIR / "clients.csv", index=False)
 # Tickers
 tickers = pd.DataFrame(
     {
-        "ticker_id": [1, 2, 3],
-        "ticker_name": ["Apple", "Alphabet", "Microsoft"],
-        "ticker_symbol": ["AAPL", "GOOGL", "MSFT"],
+        "ticker_id": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "ticker_name": [
+            "Apple",
+            "Alphabet",
+            "Microsoft",
+            "Palantir",
+            "NVIDIA",
+            "SPDR Gold",
+            "Vista Energy",
+            "Taiwan Semiconductor",
+            "Lam Research",
+        ],
+        "ticker_symbol": [
+            "AAPL",
+            "GOOGL",
+            "MSFT",
+            "PLTR",
+            "NVDA",
+            "GLD",
+            "VIST",
+            "TSM",
+            "LRCX",
+        ],
     }
 )
 tickers.to_csv(DATA_DIR / "tickers.csv", index=False)
