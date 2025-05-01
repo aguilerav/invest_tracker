@@ -3,7 +3,7 @@ This codes creates a dummy database in csv
 """
 
 import pandas as pd
-from src.utils.paths import DATA_DIR, PROJECT_ROOT
+from ahorro.utils.paths import DATA_DIR, PROJECT_ROOT
 
 users = pd.DataFrame(
     {
@@ -12,7 +12,7 @@ users = pd.DataFrame(
         "pwd": ["admin", "user1", "user2"],
     }
 )
-users.to_csv(DATA_DIR / "users.csv", index=False)
+users.to_csv(DATA_DIR / "users_plain.csv", index=False)
 
 clients = pd.DataFrame(
     {
