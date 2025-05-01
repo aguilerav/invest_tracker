@@ -8,12 +8,14 @@ from pathlib import Path
 # Path(__file__).parent.parent -> .../src
 # Path(__file__).parent.parent.parent -> /path/to/your_project_folder
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 
 # You can also define other key paths relative to the root
 DATA_DIR = PROJECT_ROOT / "data"
-SRC_DIR = PROJECT_ROOT / "src"
 TEST_DIR = PROJECT_ROOT / "test"
+SRC_DIR = PROJECT_ROOT / "src"
+PROJECT_DIR = SRC_DIR / "ahorro"
+TEMPLATE_DIR = PROJECT_DIR / "templates"
 
 # Example usage:
 # MY_DATA_FILE = DATA_DIR / "my_data.csv"
