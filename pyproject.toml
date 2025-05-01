@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"] # Requisito mínimo para setuptools
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ahorro" # El nombre que usarás para importar
+version = "0.1.0"    # Versión inicial de tu proyecto
+description = "Proyecto para seguir mis inversiones."
+readme = "README.md" # Opcional
+requires-python = ">=3.12" # Versión mínima de Python requerida
+
+# Lista de dependencias principales del proyecto (anteriormente 'BASE')
+# Se incluyen las versiones específicas de requirements.txt
+dependencies = [
+    "Flask==3.1.0",
+    "pandas==2.2.3",
+    "werkzeug",         # Werkzeug es una dependencia de Flask, pero lo dejamos explícito si lo usas directamente
+    "numpy==2.2.5",
+    "matplotlib==3.10.1",
+    "seaborn==0.13.2",
+    "plotly==6.0.1",
+]
+
+[project.optional-dependencies]
+# Dependencias solo para desarrollo (anteriormente 'DEV')
+dev = [
+    "pytest",           # Ya estaba, lo mantenemos
+    "ipykernel==6.29.5",
+]
+
+# --- Configuración específica de Setuptools ---
+[tool.setuptools.packages.find]
+where = ["src"]  # Busca paquetes dentro del directorio 'src'
+
