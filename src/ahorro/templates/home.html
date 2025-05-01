@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Ahorro App{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold text-gray-700 mb-4">
+    Home
+</h2>
+<p class="text-gray-600">
+    Welcome back, {{ session.get('client_name', 'Guest') }}! Use the tabs above to navigate.
+</p>
+{% endblock %}
