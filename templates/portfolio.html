@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio - Ahorro App{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-baseline mb-6 pb-4 border-b border-gray-200">
+    <h2 class="text-2xl font-semibold text-gray-700 mb-2 sm:mb-0">
+        Your Portfolio Holdings
+    </h2>
+    <div class="text-xl font-bold text-blue-600">
+        Total Worth: ${{ "%.2f"|format(overall_total_worth|default(0.0)) }}
+    </div>
+</div>
+
+<!--
+<div class="mb-8">
+    <h3 class="text-lg font-semibold text-gray-700 mb-3">Portfolio Value Over Time</h3>
+    <div id="portfolio-graph" class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 min-h-[300px]">
+        {% if not graph_dates %}
+            <p class="text-center text-gray-500 py-10">No historical data available to plot.</p>
+        {% endif %}
+    </div>
+</div>
+-->
+
+<h3 class="text-lg font-semibold text-gray-700 mb-3">Current Holdings Summary</h3>
+{% if portfolio_summary and portfolio_summary is mapping and portfolio_summary is not none %}
+    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+        <table class="w-full table-fixed divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                    <th scope="col" class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Holding</th>
+                    <th scope="col" class="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Holding Value ($)</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item_id, item in portfolio_summary.items() %}
+                <tr>
+                    <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 overflow-hidden text-ellipsis">
+                        <div class="flex items-center space-x-3">
+                            {% if item.icon_filename %}
+                                <div class="h-6 w-6 rounded-full flex-shrink-0 overflow-hidden bg-black flex items-center justify-center border border-gray-300">
+                                    <img src="{{ url_for('static', filename=item.icon_filename) }}" alt="{{ item.ticker_symbol }} logo" class="h-full w-full object-contain" onerror="this.parentElement.style.display='none'; this.onerror=null;">
+                                </div>
+                            {% else %}
+                                <div class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-500 flex-shrink-0 border border-gray-300">?</div>
+                            {% endif %}
+                            <span>{{ item.ticker_symbol }}</span>
+                        </div>
+                    </td>
+                     <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 overflow-hidden text-ellipsis">{{ item.ticker_name }}</td>
+                    <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ "%.4f"|format(item.holding) }}</td>
+                    <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 text-right">${{ "%.2f"|format(item.total_worth|default(0.0)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+             <tfoot class="bg-gray-50 border-t border-gray-300">
+                <tr>
+                    <th colspan="3" scope="row" class="px-4 sm:px-6 py-3 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">Overall Total Worth</th>
+                    <td class="px-4 sm:px-6 py-3 text-right text-sm font-bold text-gray-800">${{ "%.2f"|format(overall_total_worth|default(0.0)) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+{% elif portfolio_summary is none %}
+     <p class="text-red-600">Error: Could not load portfolio data.</p>
+{% else %}
+    <p class="text-gray-600">You have no transactions recorded yet, or your current holdings net to zero.</p>
+{% endif %}
+
+{% endblock %}
+
+{# Add scripts at the end of the body #}
+{% block scripts %}
+    {{ super() }} {# Include scripts from base template if any #}
+
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+
+    <script>
+        try {
+            // Get data passed from Flask route as strings
+            const graphDatesStr = '{{ graph_dates|tojson|safe if graph_dates is not none else "[]" }}';
+            const graphValuesStr = '{{ graph_values|tojson|safe if graph_values is not none else "[]" }}';
+
+            // Parse the JSON strings into JavaScript arrays
+            const graphDates = JSON.parse(graphDatesStr);
+            const graphValues = JSON.parse(graphValuesStr);
+
+            // Check if data exists and is an array before plotting
+            if (Array.isArray(graphDates) && graphDates.length > 0 && Array.isArray(graphValues) && graphValues.length > 0) {
+                const trace1 = { /* ... trace config ... */
+                    x: graphDates, y: graphValues, mode: 'lines', name: 'Total Portfolio Value',
+                    line: { color: 'rgb(59, 130, 246)', width: 2 },
+                    hovertemplate: '<b>Date</b>: %{x}<br><b>Value</b>: $%{y:.2f}<extra></extra>'
+                };
+                const layout = { /* ... layout config ... */
+                    title: { text: 'Portfolio Value History', font: { size: 16 } },
+                    xaxis: { title: 'Date', tickformat: '%Y-%m-%d', showgrid: true, zeroline: false },
+                    yaxis: { title: 'Total Value ($)', tickprefix: '$', showgrid: true, zeroline: false },
+                    margin: { l: 60, r: 20, t: 40, b: 50 }, hovermode: 'x unified', autosize: true
+                };
+                const config = { responsive: true, displaylogo: false };
+                const graphDiv = document.getElementById('portfolio-graph');
+
+                if (graphDiv) {
+                     Plotly.newPlot(graphDiv, [trace1], layout, config);
+                     window.addEventListener('resize', function() { Plotly.Plots.resize(graphDiv); });
+                } else { console.error("Graph container div 'portfolio-graph' not found."); }
+            } else {
+                console.log("No valid data available for plotting the graph.");
+                const graphDiv = document.getElementById('portfolio-graph');
+                if(graphDiv && !graphDiv.textContent.includes('No historical data available')) {
+                     graphDiv.innerHTML = '<p class="text-center text-gray-500 py-10">Insufficient data to plot graph.</p>';
+                }
+            }
+        } catch (e) {
+            console.error("Error parsing graph data or plotting:", e);
+            const graphDiv = document.getElementById('portfolio-graph');
+            if(graphDiv) { graphDiv.innerHTML = '<p class="text-center text-red-500 py-10">Error loading graph data.</p>'; }
+        }
+    </script>
+{% endblock %}
+

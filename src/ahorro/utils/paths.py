@@ -15,7 +15,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 TEST_DIR = PROJECT_ROOT / "test"
 SRC_DIR = PROJECT_ROOT / "src"
 PROJECT_DIR = SRC_DIR / "ahorro"
-TEMPLATE_DIR = PROJECT_DIR / "templates"
+TEMPLATE_DIR = PROJECT_ROOT / "templates"
+STATIC_DIR = PROJECT_ROOT / "static"
 
 # Example usage:
 # MY_DATA_FILE = DATA_DIR / "my_data.csv"
