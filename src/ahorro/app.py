@@ -227,7 +227,6 @@ def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_i
         return False
 
 
-# --- **UPDATED**: Portfolio Calculation Function ---
 def calculate_portfolio(user_id):
     """
     Calculates current holdings and their values for a given user.
@@ -266,7 +265,7 @@ def calculate_portfolio(user_id):
     if holdings.empty:
         return portfolio_summary, overall_total_worth
 
-    portfolio_df = holdings.reset_index()
+    portfolio_df = holdings.reset_index().copy()
     portfolio_df.rename(columns={"effective_amount": "holding"}, inplace=True)
     portfolio_df["ticker_id"] = portfolio_df["ticker_id"].astype(str)
 
@@ -293,10 +292,10 @@ def calculate_portfolio(user_id):
         portfolio_df["price_date"] = None
 
     # Fill missing info
-    portfolio_df["ticker_symbol"].fillna("UNKNOWN", inplace=True)
-    portfolio_df["ticker_name"].fillna("Unknown Ticker", inplace=True)
-    portfolio_df["price"].fillna(0.0, inplace=True)
-    portfolio_df["price_date"].fillna("N/A", inplace=True)
+    portfolio_df["ticker_symbol"] = portfolio_df["ticker_symbol"].fillna("UNKNOWN")
+    portfolio_df["ticker_name"] = portfolio_df["ticker_name"].fillna("Unknown Ticker")
+    portfolio_df["price"] = portfolio_df["price"].fillna(0.0)
+    portfolio_df["price_date"] = portfolio_df["price_date"].fillna("N/A")
 
     # Calculate value for each holding
     portfolio_df["total_worth"] = portfolio_df["holding"] * portfolio_df["price"]
