@@ -184,8 +184,18 @@ def get_client_name(user_id):
         return "Error Finding Client"
 
 
-def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_id):
-    transaction_columns = ["trx_id", "user_id", "amount", "type", "date", "ticker_id"]
+def add_transaction_to_csv(
+    user_id, amount, price, transaction_type, date_str, ticker_id
+):
+    transaction_columns = [
+        "trx_id",
+        "user_id",
+        "amount",
+        "price",
+        "type",
+        "date",
+        "ticker_id",
+    ]
     new_trx_id = 1
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -212,6 +222,7 @@ def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_i
             "trx_id": new_trx_id,
             "user_id": user_id,
             "amount": amount,
+            "price": price,
             "type": transaction_type,
             "date": date_str,
             "ticker_id": ticker_id,
@@ -300,14 +311,6 @@ def calculate_portfolio(user_id):
     # Calculate value for each holding
     portfolio_df["total_worth"] = portfolio_df["holding"] * portfolio_df["price"]
 
-    # --- Add icon filename ---
-    # Assumes icons are named SYMBOL.png and live in static/icons/
-    # Handle cases where symbol might be 'UNKNOWN'
-    portfolio_df["icon_filename"] = portfolio_df["ticker_symbol"].apply(
-        lambda symbol: f"icons/{symbol}.png" if symbol != "UNKNOWN" else None
-    )
-    # --- End Add icon filename ---
-
     # Calculate overall total worth
     overall_total_worth = portfolio_df["total_worth"].sum()
 
@@ -394,10 +397,16 @@ def add_transaction():
     # Get form data
     transaction_type = request.form.get("type")
     amount_str = request.form.get("amount")
+    price_str = request.form.get("price")
     date_str = request.form.get("date")
     selected_ticker_symbol = request.form.get("ticker_symbol")
     # Validation
-    if not all([transaction_type, amount_str, date_str, selected_ticker_symbol]):
+    print(
+        f"Received transaction data: {transaction_type}, {amount_str}, {price_str}, {date_str}, {selected_ticker_symbol}"
+    )
+    if not all(
+        [transaction_type, amount_str, price_str, date_str, selected_ticker_symbol]
+    ):
         flash("All transaction fields are required.", "danger")
         return redirect(url_for("transactions_page"))
     if transaction_type not in ["buy", "sell"]:
@@ -408,6 +417,12 @@ def add_transaction():
         assert amount > 0
     except:
         flash("Amount must be a positive number.", "danger")
+        return redirect(url_for("transactions_page"))
+    try:
+        price = float(price_str)
+        assert price > 0
+    except:
+        flash("Price must be a positive number.", "danger")
         return redirect(url_for("transactions_page"))
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
@@ -437,7 +452,7 @@ def add_transaction():
     # Add transaction
     if ticker_id is not None:
         if add_transaction_to_csv(
-            user_id, amount, transaction_type, date_str, ticker_id
+            user_id, amount, price, transaction_type, date_str, ticker_id
         ):
             flash("Transaction added successfully!", "success")
         else:
