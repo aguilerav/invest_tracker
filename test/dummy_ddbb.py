@@ -28,7 +28,7 @@ clients.to_csv(DATA_DIR / "clients.csv", index=False)
 # Tickers
 tickers = pd.DataFrame(
     {
-        "ticker_id": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "ticker_id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
         "ticker_name": [
             "Apple",
             "Alphabet",
@@ -39,6 +39,9 @@ tickers = pd.DataFrame(
             "Vista Energy",
             "Taiwan Semiconductor",
             "Lam Research",
+            "Western Digital Corp",
+            "Banco de Chile",
+            "Micron Technology Inc",
         ],
         "ticker_symbol": [
             "AAPL",
@@ -50,6 +53,9 @@ tickers = pd.DataFrame(
             "VIST",
             "TSM",
             "LRCX",
+            "WDC",
+            "BCH",
+            "MU",
         ],
     }
 )
