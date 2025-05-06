@@ -275,8 +275,9 @@ def calculate_portfolio_history(user_id: str):
 
     # Calculate Net Transaction Value
     user_trx["net_transaction_value"] = user_trx["price"]
-    # UNCOMMENT IF price in CSV is always positive:
-    # user_trx.loc[sell_mask, 'net_transaction_value'] = -user_trx.loc[sell_mask, 'net_transaction_value']
+    user_trx.loc[sell_mask, "net_transaction_value"] = -user_trx.loc[
+        sell_mask, "net_transaction_value"
+    ]
     user_trx.dropna(subset=["net_quantity", "net_transaction_value"], inplace=True)
 
     # Prepare for aggregation
