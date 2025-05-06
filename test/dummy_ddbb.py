@@ -62,14 +62,15 @@ tickers = pd.DataFrame(
 tickers.to_csv(DATA_DIR / "tickers.csv", index=False)
 
 # Transactions information
-trx = pd.DataFrame(
-    {
-        "trx_id": [1, 2, 3, 4, 5],
-        "user_id": [1, 1, 1, 2, 3],
-        "amount": [200.0, 100.0, 300.0, 50.0, 150.0],
-        "type": ["buy", "sell", "buy", "buy", "buy"],
-        "date": ["2024-12-01", "2024-12-12", "2024-12-20", "2024-12-10", "2024-12-09"],
-        "ticker_id": [1, 1, 2, 3, 1],
-    }
-)
-trx.to_csv(DATA_DIR / "transactions.csv", index=False)
+# trx = pd.DataFrame(
+#    {
+#        "trx_id": [1, 2, 3, 4, 5],
+#        "user_id": [1, 1, 1, 2, 3],
+#        "amount": [200.0, 100.0, 300.0, 50.0, 150.0],
+#        "price": [10.0, 20.0, 30.0, 40.0, 50.0],
+#        "type": ["buy", "sell", "buy", "buy", "buy"],
+#        "date": ["2024-12-01", "2024-12-12", "2024-12-20", "2024-12-10", "2024-12-09"],
+#        "ticker_id": [1, 1, 2, 3, 1],
+#    }
+# )
+# trx.to_csv(DATA_DIR / "transactions.csv", index=False)
