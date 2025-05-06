@@ -1,6 +1,15 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    jsonify,
+)
 from werkzeug.security import check_password_hash
 from pathlib import Path
 from datetime import datetime
@@ -320,6 +329,45 @@ def calculate_portfolio(user_id):
     return portfolio_summary, overall_total_worth
 
 
+def get_holding_for_ticker(user_id, ticker_id):
+    """Calculates the current holding amount for a specific user and ticker."""
+    transactions_df = load_transactions()
+    if transactions_df is None or transactions_df.empty:
+        return 0.0  # No transactions, so holding is 0
+
+    # Filter for the specific user and ticker
+    user_ticker_transactions = transactions_df[
+        (transactions_df["user_id"] == str(user_id))
+        & (transactions_df["ticker_id"] == str(ticker_id))
+    ].copy()
+
+    if user_ticker_transactions.empty:
+        return 0.0  # No transactions for this specific ticker
+
+    # Calculate effective amount (buy adds, sell subtracts)
+    user_ticker_transactions["amount"] = pd.to_numeric(
+        user_ticker_transactions["amount"], errors="coerce"
+    )
+    user_ticker_transactions.dropna(
+        subset=["amount"], inplace=True
+    )  # Drop rows where amount couldn't be converted
+
+    user_ticker_transactions["effective_amount"] = user_ticker_transactions.apply(
+        lambda row: (
+            row["amount"] if str(row["type"]).lower() == "buy" else -row["amount"]
+        ),
+        axis=1,
+    )
+
+    # Sum up to get the current holding
+    current_holding = user_ticker_transactions["effective_amount"].sum()
+
+    # Ensure holding isn't negative due to potential data issues, round slightly to avoid floating point dust
+    return max(
+        0.0, round(current_holding, 10)
+    )  # Round to 8 decimal places for precision
+
+
 # --- Flask Routes ---
 @app.route("/")
 def index():
@@ -388,6 +436,43 @@ def transactions_page():
     return render_template(
         "transactions_page.html", today_date=today_date, tickers=ticker_list
     )
+
+
+@app.route("/get_holding_amount/<ticker_symbol>")
+@login_required
+def get_holding_amount_route(ticker_symbol):
+    """API endpoint to get the current holding amount for a ticker symbol."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # This shouldn't happen due to @login_required, but good practice
+        return jsonify({"error": "User not logged in"}), 401
+
+    if not ticker_symbol:
+        return jsonify({"error": "Ticker symbol required"}), 400
+
+    # Find the ticker_id for the given symbol
+    tickers_df = load_tickers()
+    ticker_id = None
+    if (
+        tickers_df is not None
+        and not tickers_df.empty
+        and "ticker_symbol" in tickers_df.columns
+        and "ticker_id" in tickers_df.columns
+    ):
+        ticker_record = tickers_df[
+            tickers_df["ticker_symbol"].astype(str) == str(ticker_symbol)
+        ]
+        if not ticker_record.empty:
+            ticker_id = ticker_record.iloc[0]["ticker_id"]
+        else:
+            return jsonify({"error": f"Ticker symbol '{ticker_symbol}' not found"}), 404
+    else:
+        return jsonify({"error": "Ticker data unavailable"}), 500
+
+    # Calculate the holding using the helper function
+    holding_amount = get_holding_for_ticker(user_id, ticker_id)
+
+    return jsonify({"holding": holding_amount})
 
 
 @app.route("/add_transaction", methods=["POST"])
