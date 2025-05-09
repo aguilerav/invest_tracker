@@ -1,6 +1,15 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    jsonify,
+)
 from werkzeug.security import check_password_hash
 from pathlib import Path
 from datetime import datetime
@@ -184,8 +193,18 @@ def get_client_name(user_id):
         return "Error Finding Client"
 
 
-def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_id):
-    transaction_columns = ["trx_id", "user_id", "amount", "type", "date", "ticker_id"]
+def add_transaction_to_csv(
+    user_id, amount, price, transaction_type, date_str, ticker_id
+):
+    transaction_columns = [
+        "trx_id",
+        "user_id",
+        "amount",
+        "price",
+        "type",
+        "date",
+        "ticker_id",
+    ]
     new_trx_id = 1
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -212,6 +231,7 @@ def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_i
             "trx_id": new_trx_id,
             "user_id": user_id,
             "amount": amount,
+            "price": price,
             "type": transaction_type,
             "date": date_str,
             "ticker_id": ticker_id,
@@ -227,7 +247,6 @@ def add_transaction_to_csv(user_id, amount, transaction_type, date_str, ticker_i
         return False
 
 
-# --- **UPDATED**: Portfolio Calculation Function ---
 def calculate_portfolio(user_id):
     """
     Calculates current holdings and their values for a given user.
@@ -266,7 +285,7 @@ def calculate_portfolio(user_id):
     if holdings.empty:
         return portfolio_summary, overall_total_worth
 
-    portfolio_df = holdings.reset_index()
+    portfolio_df = holdings.reset_index().copy()
     portfolio_df.rename(columns={"effective_amount": "holding"}, inplace=True)
     portfolio_df["ticker_id"] = portfolio_df["ticker_id"].astype(str)
 
@@ -293,21 +312,13 @@ def calculate_portfolio(user_id):
         portfolio_df["price_date"] = None
 
     # Fill missing info
-    portfolio_df["ticker_symbol"].fillna("UNKNOWN", inplace=True)
-    portfolio_df["ticker_name"].fillna("Unknown Ticker", inplace=True)
-    portfolio_df["price"].fillna(0.0, inplace=True)
-    portfolio_df["price_date"].fillna("N/A", inplace=True)
+    portfolio_df["ticker_symbol"] = portfolio_df["ticker_symbol"].fillna("UNKNOWN")
+    portfolio_df["ticker_name"] = portfolio_df["ticker_name"].fillna("Unknown Ticker")
+    portfolio_df["price"] = portfolio_df["price"].fillna(0.0)
+    portfolio_df["price_date"] = portfolio_df["price_date"].fillna("N/A")
 
     # Calculate value for each holding
     portfolio_df["total_worth"] = portfolio_df["holding"] * portfolio_df["price"]
-
-    # --- Add icon filename ---
-    # Assumes icons are named SYMBOL.png and live in static/icons/
-    # Handle cases where symbol might be 'UNKNOWN'
-    portfolio_df["icon_filename"] = portfolio_df["ticker_symbol"].apply(
-        lambda symbol: f"icons/{symbol}.png" if symbol != "UNKNOWN" else None
-    )
-    # --- End Add icon filename ---
 
     # Calculate overall total worth
     overall_total_worth = portfolio_df["total_worth"].sum()
@@ -316,6 +327,45 @@ def calculate_portfolio(user_id):
     portfolio_summary = portfolio_df.set_index("ticker_id").to_dict("index")
 
     return portfolio_summary, overall_total_worth
+
+
+def get_holding_for_ticker(user_id, ticker_id):
+    """Calculates the current holding amount for a specific user and ticker."""
+    transactions_df = load_transactions()
+    if transactions_df is None or transactions_df.empty:
+        return 0.0  # No transactions, so holding is 0
+
+    # Filter for the specific user and ticker
+    user_ticker_transactions = transactions_df[
+        (transactions_df["user_id"] == str(user_id))
+        & (transactions_df["ticker_id"] == str(ticker_id))
+    ].copy()
+
+    if user_ticker_transactions.empty:
+        return 0.0  # No transactions for this specific ticker
+
+    # Calculate effective amount (buy adds, sell subtracts)
+    user_ticker_transactions["amount"] = pd.to_numeric(
+        user_ticker_transactions["amount"], errors="coerce"
+    )
+    user_ticker_transactions.dropna(
+        subset=["amount"], inplace=True
+    )  # Drop rows where amount couldn't be converted
+
+    user_ticker_transactions["effective_amount"] = user_ticker_transactions.apply(
+        lambda row: (
+            row["amount"] if str(row["type"]).lower() == "buy" else -row["amount"]
+        ),
+        axis=1,
+    )
+
+    # Sum up to get the current holding
+    current_holding = user_ticker_transactions["effective_amount"].sum()
+
+    # Ensure holding isn't negative due to potential data issues, round slightly to avoid floating point dust
+    return max(
+        0.0, round(current_holding, 10)
+    )  # Round to 8 decimal places for precision
 
 
 # --- Flask Routes ---
@@ -388,6 +438,43 @@ def transactions_page():
     )
 
 
+@app.route("/get_holding_amount/<ticker_symbol>")
+@login_required
+def get_holding_amount_route(ticker_symbol):
+    """API endpoint to get the current holding amount for a ticker symbol."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # This shouldn't happen due to @login_required, but good practice
+        return jsonify({"error": "User not logged in"}), 401
+
+    if not ticker_symbol:
+        return jsonify({"error": "Ticker symbol required"}), 400
+
+    # Find the ticker_id for the given symbol
+    tickers_df = load_tickers()
+    ticker_id = None
+    if (
+        tickers_df is not None
+        and not tickers_df.empty
+        and "ticker_symbol" in tickers_df.columns
+        and "ticker_id" in tickers_df.columns
+    ):
+        ticker_record = tickers_df[
+            tickers_df["ticker_symbol"].astype(str) == str(ticker_symbol)
+        ]
+        if not ticker_record.empty:
+            ticker_id = ticker_record.iloc[0]["ticker_id"]
+        else:
+            return jsonify({"error": f"Ticker symbol '{ticker_symbol}' not found"}), 404
+    else:
+        return jsonify({"error": "Ticker data unavailable"}), 500
+
+    # Calculate the holding using the helper function
+    holding_amount = get_holding_for_ticker(user_id, ticker_id)
+
+    return jsonify({"holding": holding_amount})
+
+
 @app.route("/add_transaction", methods=["POST"])
 @login_required
 def add_transaction():
@@ -395,10 +482,16 @@ def add_transaction():
     # Get form data
     transaction_type = request.form.get("type")
     amount_str = request.form.get("amount")
+    price_str = request.form.get("price")
     date_str = request.form.get("date")
     selected_ticker_symbol = request.form.get("ticker_symbol")
     # Validation
-    if not all([transaction_type, amount_str, date_str, selected_ticker_symbol]):
+    print(
+        f"Received transaction data: {transaction_type}, {amount_str}, {price_str}, {date_str}, {selected_ticker_symbol}"
+    )
+    if not all(
+        [transaction_type, amount_str, price_str, date_str, selected_ticker_symbol]
+    ):
         flash("All transaction fields are required.", "danger")
         return redirect(url_for("transactions_page"))
     if transaction_type not in ["buy", "sell"]:
@@ -409,6 +502,12 @@ def add_transaction():
         assert amount > 0
     except:
         flash("Amount must be a positive number.", "danger")
+        return redirect(url_for("transactions_page"))
+    try:
+        price = float(price_str)
+        assert price > 0
+    except:
+        flash("Price must be a positive number.", "danger")
         return redirect(url_for("transactions_page"))
     try:
         datetime.strptime(date_str, "%Y-%m-%d")
@@ -438,7 +537,7 @@ def add_transaction():
     # Add transaction
     if ticker_id is not None:
         if add_transaction_to_csv(
-            user_id, amount, transaction_type, date_str, ticker_id
+            user_id, amount, price, transaction_type, date_str, ticker_id
         ):
             flash("Transaction added successfully!", "success")
         else:

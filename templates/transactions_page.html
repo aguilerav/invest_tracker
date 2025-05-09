@@ -16,10 +16,21 @@
 
     <div>
         <label for="amount" class="block text-sm font-medium text-gray-600 mb-1">Amount</label>
-        <input type="number" id="amount" name="amount" step="any" required placeholder="e.g., 100.50"
+        <div class="flex items-center space-x-2">
+            <input type="number" id="amount" name="amount" step="any" required placeholder="e.g., 10.5"
+                   class="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <button type="button" id="fill-holding-button" title="Fill with current holding amount for selected ticker"
+                    class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-md border border-gray-300 transition duration-150 ease-in-out">
+                    Fill Holding
+            </button>
+        </div>
+         <p class="text-xs text-gray-500 mt-1">Click 'Fill Holding' after selecting a ticker to populate this field with your current amount (useful for selling all).</p>
+    </div>
+    <div>
+        <label for="price" class="block text-sm font-medium text-gray-600 mb-1">Price ($USD)</label>
+        <input type="number" id="price" name="price" step="any" required placeholder="e.g., 100.50"
                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
     </div>
-
     <div>
         <label for="date" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
         <input type="date" id="date" name="date" required value="{{ today_date }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -29,7 +40,9 @@
         <label for="ticker_symbol" class="block text-sm font-medium text-gray-600 mb-1">Ticker Symbol</label>
         <select id="ticker_symbol" name="ticker_symbol" required
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-            <option value="" disabled selected>Select a Ticker</option> {% if tickers %} {% for ticker in tickers %}
+            <option value="" disabled selected>Select a Ticker</option>
+            {% if tickers %}
+                {% for ticker in tickers %}
                     <option value="{{ ticker.ticker_symbol }}">{{ ticker.ticker_symbol }}</option>
                 {% endfor %}
             {% else %}
@@ -45,4 +58,78 @@
         </button>
     </div>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fillButton = document.getElementById('fill-holding-button');
+        const tickerSelect = document.getElementById('ticker_symbol');
+        const amountInput = document.getElementById('amount');
+
+        fillButton.addEventListener('click', function() {
+            const selectedTicker = tickerSelect.value;
+
+            if (!selectedTicker) {
+                alert('Please select a ticker first.');
+                return;
+            }
+
+            // Disable button while fetching to prevent multiple clicks
+            fillButton.disabled = true;
+            fillButton.textContent = 'Fetching...';
+
+
+            // Construct the URL for the API endpoint
+            const url = `/get_holding_amount/${encodeURIComponent(selectedTicker)}`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        // Try to parse error message from JSON if available
+                        return response.json().then(errData => {
+                            throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                        }).catch(() => {
+                            // Fallback if error response is not JSON
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json(); // Parse the JSON data from the response
+                })
+                .then(data => {
+                    if (data.holding !== undefined) {
+                        // Update the amount input field
+                        // Use toFixed to avoid potential scientific notation for small/large numbers
+                        // Adjust the number of decimal places if needed (e.g., 8 for crypto)
+                        const holdingValue = parseFloat(data.holding);
+                        amountInput.value = holdingValue.toFixed(8); // Adjust precision as needed
+                         // Optional: Trigger change event if other scripts rely on it
+                        amountInput.dispatchEvent(new Event('input'));
+                    } else if (data.error) {
+                         alert(`Error fetching holding: ${data.error}`);
+                         amountInput.value = ''; // Clear field on error
+                    } else {
+                        // Should not happen if backend is correct, but handle anyway
+                        alert('Received unexpected data from server.');
+                         amountInput.value = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching holding amount:', error);
+                    alert(`Could not fetch holding amount: ${error.message}`);
+                    amountInput.value = ''; // Clear field on error
+                })
+                .finally(() => {
+                     // Re-enable button and restore text regardless of success/failure
+                    fillButton.disabled = false;
+                    fillButton.textContent = 'Fill Holding';
+                });
+        });
+
+         // Optional: Disable button initially if no ticker is selected
+         // fillButton.disabled = !tickerSelect.value;
+         // tickerSelect.addEventListener('change', () => {
+         //    fillButton.disabled = !tickerSelect.value;
+         // });
+    });
+</script>
+
 {% endblock %}

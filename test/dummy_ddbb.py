@@ -28,7 +28,7 @@ clients.to_csv(DATA_DIR / "clients.csv", index=False)
 # Tickers
 tickers = pd.DataFrame(
     {
-        "ticker_id": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "ticker_id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
         "ticker_name": [
             "Apple",
             "Alphabet",
@@ -39,6 +39,9 @@ tickers = pd.DataFrame(
             "Vista Energy",
             "Taiwan Semiconductor",
             "Lam Research",
+            "Western Digital Corp",
+            "Banco de Chile",
+            "Micron Technology Inc",
         ],
         "ticker_symbol": [
             "AAPL",
@@ -50,20 +53,24 @@ tickers = pd.DataFrame(
             "VIST",
             "TSM",
             "LRCX",
+            "WDC",
+            "BCH",
+            "MU",
         ],
     }
 )
 tickers.to_csv(DATA_DIR / "tickers.csv", index=False)
 
 # Transactions information
-trx = pd.DataFrame(
-    {
-        "trx_id": [1, 2, 3, 4, 5],
-        "user_id": [1, 1, 1, 2, 3],
-        "amount": [200.0, 100.0, 300.0, 50.0, 150.0],
-        "type": ["buy", "sell", "buy", "buy", "buy"],
-        "date": ["2024-12-01", "2024-12-12", "2024-12-20", "2024-12-10", "2024-12-09"],
-        "ticker_id": [1, 1, 2, 3, 1],
-    }
-)
-trx.to_csv(DATA_DIR / "transactions.csv", index=False)
+# trx = pd.DataFrame(
+#    {
+#        "trx_id": [1, 2, 3, 4, 5],
+#        "user_id": [1, 1, 1, 2, 3],
+#        "amount": [200.0, 100.0, 300.0, 50.0, 150.0],
+#        "price": [10.0, 20.0, 30.0, 40.0, 50.0],
+#        "type": ["buy", "sell", "buy", "buy", "buy"],
+#        "date": ["2024-12-01", "2024-12-12", "2024-12-20", "2024-12-10", "2024-12-09"],
+#        "ticker_id": [1, 1, 2, 3, 1],
+#    }
+# )
+# trx.to_csv(DATA_DIR / "transactions.csv", index=False)
