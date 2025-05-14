@@ -19,7 +19,10 @@ dependencies = [
     "seaborn==0.13.2",
     "plotly==6.0.1",
     "yfinance==0.2.57",
-    "dash==3.0.4"
+    "dash==3.0.4",
+    "fastapi[standard]==0.115.12",
+    "SQLAlchemy==2.0.40",
+    "python-dotenv==1.1.0",
 ]
 
 [project.optional-dependencies]
@@ -31,5 +34,5 @@ dev = [
 
 # --- Setuptools specific configuration ---
 [tool.setuptools.packages.find]
-where = ["src"] 
+where = ["."] 
 
