@@ -23,6 +23,7 @@ dependencies = [
     "fastapi[standard]==0.115.12",
     "SQLAlchemy==2.0.40",
     "python-dotenv==1.1.0",
+    "SQLModel==0.0.24",
 ]
 
 [project.optional-dependencies]
